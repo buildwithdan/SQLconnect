@@ -1,11 +1,14 @@
 import requests
 import pandas as pd
 import numpy as np
+import psycopg2
+from sqlalchemy import create_engine
 
 #define variables, could add others for maxPrice etc
 
 #https://www.reddit.com/r/webscraping/comments/wjb8uv/rightmove_scraping/
 #https://www.rightmove.co.uk/property-for-sale/search.html?searchLocation=London&useLocationIdentifier=true&locationIdentifier=REGION%5E87490&buy=For+sale
+
 
 boroughs = {
     "City of London": "5E61224"
@@ -19,7 +22,7 @@ headers = {
 
 output = []
 for name,borough_code in boroughs.items():
-    for page in range(41):
+    for page in range(5):
         url = f"https://www.rightmove.co.uk/api/_search?locationIdentifier=REGION%{borough_code}&numberOfPropertiesPerPage=100&radius=0.0&sortType=2&index={str(24*page)}&maxBedrooms=3&minBedrooms=2&maxPrice=550000&minPrice=475000&sortType=6&propertyTypes=&includeSSTC=false&viewType=LIST&channel=BUY&areaSizeUnit=sqft&currencyCode=GBP&isFetching=false"
         print(f'Scraping: {name} - Page: {page}')
         data = requests.get(url,headers=headers).json()
@@ -30,19 +33,12 @@ df = pd.json_normalize(output)
 
 #df.to_csv('scraped_data.csv',index=False)
 
-connection = psycopg2.connect(user="dnellpersonal",
-                                  password="v2_3uywZ_D7WHHVhxkSCDwhHLvFj9CZ9",
-                                  host="db.bit.io",
-                                  port="5432",
-                                  database="dnellpersonal/test1")
+conn_string = 'postgresql://r00t:thebuckstopshere!!@192.168.1.206/PropertyData'
+  
+db = create_engine(conn_string)
+conn = db.connect()
 
-cursor = connection.cursor()
-
-df.to_sql('rightmove', connection)
-
-    #postgres_insert_query = """ INSERT INTO rightmove VALUES (%s,%s,%s,%s)"""
-    #record_to_insert = ('www.google.com', '6 Birch Tree Way','2bedroom with a pug',320000)
-    #cursor.execute(postgres_insert_query, record_to_insert)
-
-connection.commit()
-count = cursor.rowcount
+df.to_sql('example1', conn, if_exists='replace',index=False)
+conn = psycopg2.connect(conn_string)
+conn.autocommit = True
+cursor = conn.cursor()
